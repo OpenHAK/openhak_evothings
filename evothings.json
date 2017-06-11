@@ -1,0 +1,28 @@
+{
+  "uuid": "cbf8303a-dc9b-44e0-828a-bb70304fb990",
+  "plugins": [
+    {
+      "name": "cordova-plugin-ble",
+      "version": "2.0.1"
+    }
+  ],
+  "libraries": [
+    {
+      "name": "framework7",
+      "version": "1.4.2"
+    },
+    {
+      "name": "jquery",
+      "version": "2.1.1"
+    }
+  ],
+  "name": "contiglo",
+  "title": "Contiglo",
+  "description": "App to control Contiglo mug",
+  "long-description": "App to control Contiglo mug",
+  "version": "0.1.0",
+  "author-name": "Leif Percifield",
+  "author-email": "leif@bond.co",
+  "author-url": "https://newellco.com",
+  "cordova-id": "com.newellxo.contiglo"
+}

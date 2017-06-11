@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<!--
+This is an example app that demonstrates how to control an
+RFduino RFD22102 board using BLE (Bluetooth Low Energy).
+
+Please note that this example requires an RFduino RFD22102 plus
+and RFduino RGB LED Button shield (RFD22122). In addition, an
+RFduino USB shield (RFD22121) is needed for programming the
+RFduino from a PC or Mac.
+-->
+
+<head>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, user-scalable=no
+		initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+	<meta http-equiv="pragma" content="no-cache" />
+	<meta http-equiv="expires" content="-1" />
+
+	<title>OpenHAK</title>
+
+	<style>
+		@import 'ui/css/evothings-app.css';
+	</style>
+
+	<style>
+		div {
+			margin: 10px 0px;
+		}
+
+		button {
+			margin: 5px 0px;
+		}
+
+		.lead {
+			font-weight: bold;
+		}
+	</style>
+
+	<script>
+		// Redirect console.log to Evothings Workbench.
+		if (window.hyper && window.hyper.log) {
+			console.log = hyper.log
+		}
+	</script>
+
+	<script src="cordova.js"></script>
+	<script src="libs/jquery/jquery.js"></script>
+	<script src="libs/evothings/evothings.js"></script>
+	<script src="libs/evothings/ui/ui.js"></script>
+	<script src="libs/evothings/rfduinoble/rfduinoble.js"></script>
+
+</head>
+
+<body>
+
+	<header>
+		<h1>OpenHAK</h1>
+		<!-- <button class="back" onclick="history.back()">
+			<img src="ui/images/arrow-left.svg" />
+		</button>
+
+		<img class="logotype" src="ui/images/logo.svg" alt="Evothings" /> -->
+
+		<!--<button class="menu" onclick=""><img src="ui/images/menu.svg" /></button>-->
+	</header>
+
+
+
+	<p id="info" class="lead">Initializing...</p>
+	<h2>Available OpenHAKs</h2>
+	<!-- TODO: buttons to start/stop scan. -->
+	<ul data-role="listview" id="deviceList">
+		<li>Address RSSI Name</li>
+	</ul>
+	<button type="button" class="blue" onclick="app.scanStart()">
+		Scan
+	</button>
+	<button type="button" class="charcoal" onclick="app.scanStop()">
+		Stop Scan
+	</button>
+	<button type="button" class="yellow" onclick="app.sendTimeSync()">
+		Sync Time
+	</button>
+	<!-- <button type="button" class="red" onclick="app.ledOff()">
+		Found
+	</button> -->
+	<button type="button" class="charcoal" onclick="app.disconnect()">
+		Disconnect
+	</button>
+	<p id="log" class="lead">Pending Logs...</p>
+	<p id="log2" class="lead">Pending Logs...</p>
+	<p id="log3" class="lead">Pending Logs...</p>
+	<!-- </br>
+	<button type="button" class="charcoal" onclick="app.playPrevious()">
+		< Play Previous
+	</button>
+	<button type="button" class="charcoal" onclick="app.playNext()">
+		Play Next >
+	</button> -->
+	<!--  style="width: 100%;"-->
+
+	<!-- <h2>Instructions</h2>
+	<p>Make sure that the board OFF, insert the SD card, and ensure the SD switch is turned on. Switch on the device. The red LED indicates power. After logging starts, there is no need to stop, just turn off the device. The above display will show real-time CO2 readings while the phone is connected, but the phone DOES NOT need to remain connected for looging conntinue. TIME IS GMT, CO2 is PPM</p> -->
+
+	<!-- TODO: Image is missing.
+	<p><img src="RFduino_Image.png" style="max-height:30%;" /></p>
+	-->
+
+	<!-- JavaScript code for the app -->
+	<script>
+		/**
+		 * The following JavaScript code allows us to get the color value
+		 * as the selected point on rendered image on the UI.
+		 */
+		// Short name for RFduino BLE library.
+		var rfduinoble = evothings.rfduinoble;
+
+		// Application object.
+		var app = {};
+		app.knownDevices = {};
+		var R = 0;
+		var G = 0;
+		var B = 0;
+		// Connected device.
+		app.device = null;
+
+		app.scanStop = function() {
+			console.log("stop scan");
+			app.showMessage("Not Scanning");
+			rfduinoble.stopScan();
+		}
+		app.scanStart = function() {
+			console.log("scanning");
+			app.showMessage("Scanning...");
+			app.knownDevices = {};
+			$("#deviceList").empty();
+			rfduinoble.scan("OpenHAK",
+				function(r) {
+					if (app.knownDevices[r.address]) {
+						return;
+					}
+					app.knownDevices[r.address] = r.address;
+					//var res = r.rssi + " " + r.name + " " + r.kCBAdvDataLocalName;
+					var res = r.rssi + " " + r.advertisementData.kCBAdvDataLocalName; //kCBAdvDataLocalName
+					console.log('scan result: ' + JSON.stringify(r));
+					var p = document.getElementById('deviceList');
+					var li = document.createElement('li');
+					var $a = $("<a href=\"#connected\">" + res + "</a>");
+					$(li).append($a);
+					$a.bind("click", {
+							address: r.address,
+							name: r.name,
+							device: r
+						},
+						app.eventDeviceClicked);
+					p.appendChild(li);
+					//$("#deviceList").listview("refresh");
+					console.log('found device: ' + r.name);
+				})
+		}
+		app.sendTimeSync = function() {
+			var d = new Date();
+			var utc = Math.floor((new Date()).getTime() / 1000)
+			console.log(utc);
+
+			function toBytesInt32(num) {
+				arr = new Uint8Array([
+					(num & 0xff000000) >> 24,
+					(num & 0x00ff0000) >> 16,
+					(num & 0x0000ff00) >> 8,
+					(num & 0x000000ff)
+				]);
+				return arr;
+			}
+			var output = toBytesInt32(utc);
+			// var utcBytes = bytesFromHex(utc.toString(),4);
+			// console.log(utcBytes);
+			//
+			for (var i = 0; i < output.length; i++) {
+				//output[i]=utcBytes[i]
+				console.log(output[i])
+			}
+			//clearTimeout(offTimer);
+			//console.log(output.toString());
+			//var output = new Uint8Array(bytesFromHex(utc.toString(),6));
+			//app.device && app.device.writeDataArray(new Uint8Array([R, G, B, 0x02, 0x05]));
+			// offTimer = setTimeout(function(){
+			// 	app.device && app.device.writeDataArray(new Uint8Array([R, G, B, 0x02, 0x05]));
+			// },1500)
+			// var myInt = data[3];
+			// for(var i = data.length()-1; i > 0;i--){
+			// 	myInt = myInt >> 8;
+			// 	myInt = myInt & data[]
+			// }
+		};
+		app.rfdHandler = function(rfdData) {
+			var myDataArray = new Uint8Array(rfdData);
+			// Probably should do some maximum length tests for production someday.
+			var myString = "Received Length: ";
+			myString = myString + myDataArray.byteLength + " Bytes";
+			app.logMessage(myString);
+
+			myString = "HEX: ";
+			for (i = 0; i < myDataArray.byteLength; i++) {
+				myString = myString + " " + myDataArray[i].toString(16);
+			}
+			app.logMessage2(myString);
+			//myString = "EPOCH: ";
+			var epoch = evothings.util.bigEndianToUint32(myDataArray, 0)
+			console.log(epoch);
+			myString = app.timeConverter(epoch);
+			// Create a new JavaScript Date object based on the timestamp
+			// multiplied by 1000 so that the argument is in milliseconds, not seconds.
+
+			// for (i = 0; i < myDataArray.byteLength; i++) {
+			// 	myString = myString + " " + String.fromCharCode(myDataArray[i]);
+			// }
+
+			//myString = myString + myDataArray[0];
+			app.logMessage3(myString);
+		}
+		app.eventDeviceClicked = function(event) {
+			app.showMessage("Connecting...");
+			// rfduinoble.connect(event.data.device);
+			rfduinoble.connect(event.data.device,
+				function(result) {
+					app.showMessage("Connected to " + event.data.device.advertisementData.kCBAdvDataLocalName);
+					app.device = event.data.device;
+					app.device && app.device.readData(function(data) {
+						//console.log(data.length);
+						app.rfdHandler(data);
+						//var epoch = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+						//var epoch = new Uint32Array(data)[0];
+						//console.log(uint);
+						//app.logMessage('Data: ' + epoch);
+					});
+					app.device && app.device.subscribe(function(data) {
+						//console.log(data.length);
+						app.rfdHandler(data);
+						//var epoch = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+						//var epoch = new Uint32Array(data)[0];
+						//console.log(uint);
+						//app.logMessage('Data: ' + epoch);
+					});
+				},
+				function(errorCode) {
+					app.showMessage("Connect error: " + errorCode);
+				});
+		};
+		// Turn off LED.
+		app.ledOff = function() {
+			//app.device && app.device.writeDataArray(new Uint8Array([0]));
+			app.device.writeDataArray(new Uint8Array([0, 0, 0, 0x00, 0x40]));
+		};
+		app.playNext = function() {
+			app.device && app.device.writeDataArray(new Uint8Array([0, 0, 0, 0, 0, 1]));
+			console.log("Playing Next");
+		}
+		app.playPrevious = function() {
+			app.device && app.device.writeDataArray(new Uint8Array([0, 0, 0, 0, 0, 2]));
+			console.log("Playing Previous");
+		}
+		app.showMessage = function(info) {
+			document.getElementById("info").innerHTML = info;
+		};
+		app.logMessage = function(log) {
+			document.getElementById("log").innerHTML = log;
+		};
+		app.logMessage2 = function(log) {
+			document.getElementById("log2").innerHTML = log;
+		};
+		app.logMessage3 = function(log) {
+			document.getElementById("log3").innerHTML = log;
+		};
+
+		// Called when BLE and other native functions are available.
+		app.onDeviceReady = function() {
+			app.showMessage('Press "Scan" to find OpenHAKs');
+		};
+
+		app.disconnect = function() {
+			console.log("close");
+			rfduinoble.close();
+			console.log("disconnect");
+			app.showMessage("Disconnected");
+		}
+		app.connect = function() {
+			console.log("close");
+			rfduinoble.close();
+
+			// Wait 500 ms for close to complete before connecting.
+			setTimeout(function() {
+					console.log("connecting");
+					app.showMessage("Connecting...");
+					rfduinoble.connect(
+						"openhak",
+						function(device) {
+							console.log("connected");
+							app.showMessage("Connected");
+							app.device = device;
+							app.device && app.device.subscribe(function(data) {
+								//console.log(data.length);
+								var uint = new Uint32Array(data)[0];
+								console.log(uint);
+								app.showMessage('Logging: CO2 ' + uint + "0 ppm");
+							});
+						},
+						function(errorCode) {
+							app.showMessage("Connect error: " + errorCode);
+						});
+				},
+				500);
+		};
+		app.timeConverter = function(UNIX_timestamp) {
+			var a = new Date(UNIX_timestamp * 1000);
+			var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+			var year = a.getFullYear();
+			var month = months[a.getMonth()];
+			var date = a.getDate();
+			var hour = a.getHours();
+			var min = a.getMinutes();
+			var sec = a.getSeconds();
+			var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec;
+			return time;
+		}
+
+		// When the app is fully loaded the "deviceready" event is triggered.
+		document.addEventListener(
+			'deviceready',
+			function() {
+				evothings.scriptsLoaded(app.onDeviceReady)
+			},
+			false);
+	</script>
+</body>
+
+</html>
