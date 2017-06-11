@@ -227,7 +227,7 @@ RFduino from a PC or Mac.
 			// }
 
 			//myString = myString + myDataArray[0];
-			app.logReading("Time: "+ app.timeConverter(epoch),"Steps: "+steps,"HR Median: "+hr,"HR Dev: "+hrDev,"Batt: "+bat);
+			app.logReading("Time: "+ app.timeConverter(epoch),"Steps: "+steps,"HR Median: "+hr,"HR Dev: "+hrDev,"Batt: "+(bat*0.0165).toFixed(3));
 		}
 		app.eventDeviceClicked = function(event) {
 			app.showMessage("Connecting...");
