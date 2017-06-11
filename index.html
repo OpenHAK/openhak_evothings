@@ -91,7 +91,11 @@ RFduino from a PC or Mac.
 	</button>
 	<p id="log" class="lead">Pending Logs...</p>
 	<p id="log2" class="lead">Pending Logs...</p>
-	<p id="log3" class="lead">Pending Logs...</p>
+	<p id="time" class="lead">Time: Pending Data...</p>
+	<p id="steps" class="lead">Steps: Pending Data...</p>
+	<p id="hr" class="lead">HR: Pending Data...</p>
+	<p id="hrdev" class="lead">HR Dev: Pending Data...</p>
+		<p id="batt" class="lead">Batt: Pending Data...</p>
 	<!-- </br>
 	<button type="button" class="charcoal" onclick="app.playPrevious()">
 		< Play Previous
@@ -185,7 +189,7 @@ RFduino from a PC or Mac.
 			//clearTimeout(offTimer);
 			//console.log(output.toString());
 			//var output = new Uint8Array(bytesFromHex(utc.toString(),6));
-			//app.device && app.device.writeDataArray(new Uint8Array([R, G, B, 0x02, 0x05]));
+			app.device && app.device.writeDataArray(new Uint8Array([10, output[0], output[1], output[2], output[3]]));
 			// offTimer = setTimeout(function(){
 			// 	app.device && app.device.writeDataArray(new Uint8Array([R, G, B, 0x02, 0x05]));
 			// },1500)
@@ -209,8 +213,12 @@ RFduino from a PC or Mac.
 			app.logMessage2(myString);
 			//myString = "EPOCH: ";
 			var epoch = evothings.util.bigEndianToUint32(myDataArray, 0)
+			var steps = evothings.util.bigEndianToUint16(myDataArray, 4)
+			var hr = evothings.util.littleEndianToUint8(myDataArray,6);
+			var hrDev = evothings.util.littleEndianToUint8(myDataArray,7);
+			var bat = evothings.util.littleEndianToUint8(myDataArray,8);
 			console.log(epoch);
-			myString = app.timeConverter(epoch);
+			myString = "Time: "+ app.timeConverter(epoch)+" Steps: "+steps + " HR Median: "+hr+" HR Dev: "+hrDev;
 			// Create a new JavaScript Date object based on the timestamp
 			// multiplied by 1000 so that the argument is in milliseconds, not seconds.
 
@@ -219,7 +227,7 @@ RFduino from a PC or Mac.
 			// }
 
 			//myString = myString + myDataArray[0];
-			app.logMessage3(myString);
+			app.logReading("Time: "+ app.timeConverter(epoch),"Steps: "+steps,"HR Median: "+hr,"HR Dev: "+hrDev,"Batt: "+bat);
 		}
 		app.eventDeviceClicked = function(event) {
 			app.showMessage("Connecting...");
@@ -271,8 +279,12 @@ RFduino from a PC or Mac.
 		app.logMessage2 = function(log) {
 			document.getElementById("log2").innerHTML = log;
 		};
-		app.logMessage3 = function(log) {
-			document.getElementById("log3").innerHTML = log;
+		app.logReading = function(time,steps,hr,hrdev,batt) {
+			document.getElementById("time").innerHTML = time;
+			document.getElementById("steps").innerHTML = steps;
+			document.getElementById("hr").innerHTML = hr;
+			document.getElementById("hrdev").innerHTML = hrdev;
+			document.getElementById("batt").innerHTML = batt;
 		};
 
 		// Called when BLE and other native functions are available.
@@ -320,8 +332,10 @@ RFduino from a PC or Mac.
 			var month = months[a.getMonth()];
 			var date = a.getDate();
 			var hour = a.getHours();
-			var min = a.getMinutes();
-			var sec = a.getSeconds();
+			//var min = a.getMinutes();
+			//var sec = a.getSeconds();
+			var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
+			var sec = a.getSeconds() < 10 ? '0' + a.getSeconds() : a.getSeconds();
 			var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec;
 			return time;
 		}
