@@ -31,7 +31,7 @@ body::before,
 section::before {
 	display: block;
 	width: 100%;
-	height: 1.1em; /* Should correspond to header's height. */
+	height: .8em; /* Should correspond to header's height. */
 	margin-bottom: 0.4em;
 
 	content: '\0000a0'; /* Non-breaking space (&nbsp;) */

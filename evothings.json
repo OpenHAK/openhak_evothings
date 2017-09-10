@@ -18,11 +18,11 @@
   ],
   "name": "contiglo",
   "title": "Contiglo",
-  "description": "App to control Contiglo mug",
-  "long-description": "App to control Contiglo mug",
+  "description": "App to control OpenHAK",
+  "long-description": "App to control OpenHAK Hardware Device",
   "version": "0.1.0",
   "author-name": "Leif Percifield",
-  "author-email": "leif@bond.co",
-  "author-url": "https://newellco.com",
-  "cordova-id": "com.newellxo.contiglo"
+  "author-email": "lpercifield@gmail.com",
+  "author-url": "https://openhak.com",
+  "cordova-id": "com.openhak.device"
 }

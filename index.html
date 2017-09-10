@@ -1,14 +1,5 @@
 <!DOCTYPE html>
 <html>
-<!--
-This is an example app that demonstrates how to control an
-RFduino RFD22102 board using BLE (Bluetooth Low Energy).
-
-Please note that this example requires an RFduino RFD22102 plus
-and RFduino RGB LED Button shield (RFD22122). In addition, an
-RFduino USB shield (RFD22121) is needed for programming the
-RFduino from a PC or Mac.
--->
 
 <head>
 
@@ -50,6 +41,10 @@ RFduino from a PC or Mac.
 	<script src="libs/evothings/evothings.js"></script>
 	<script src="libs/evothings/ui/ui.js"></script>
 	<script src="libs/evothings/rfduinoble/rfduinoble.js"></script>
+	<script src="//www.parsecdn.com/js/parse-1.4.0.min.js"></script>
+	<script src="https://www.google.com/jsapi"></script>
+	<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
 
 </head>
 
@@ -83,19 +78,21 @@ RFduino from a PC or Mac.
 	<button type="button" class="yellow" onclick="app.sendTimeSync()">
 		Sync Time
 	</button>
-	<!-- <button type="button" class="red" onclick="app.ledOff()">
-		Found
-	</button> -->
+	<button type="button" class="red" onclick="app.getHistory()">
+		Get History
+	</button>
 	<button type="button" class="charcoal" onclick="app.disconnect()">
 		Disconnect
 	</button>
+	<div id="chart_div" style="width: 360px; height: 120px;"></div>
 	<p id="log" class="lead">Pending Logs...</p>
 	<p id="log2" class="lead">Pending Logs...</p>
 	<p id="time" class="lead">Time: Pending Data...</p>
 	<p id="steps" class="lead">Steps: Pending Data...</p>
 	<p id="hr" class="lead">HR: Pending Data...</p>
 	<p id="hrdev" class="lead">HR Dev: Pending Data...</p>
-		<p id="batt" class="lead">Batt: Pending Data...</p>
+	<p id="batt" class="lead">Batt: Pending Data...</p>
+	<p id="sampleCount" class="lead">Sample Count: Pending Data...</p>
 	<!-- </br>
 	<button type="button" class="charcoal" onclick="app.playPrevious()">
 		< Play Previous
@@ -119,6 +116,9 @@ RFduino from a PC or Mac.
 		 * as the selected point on rendered image on the UI.
 		 */
 		// Short name for RFduino BLE library.
+		//google.load("visualization", "1", {packages:["line"]})
+		google.charts.load('current', {'packages':['corechart']});
+		//google.setOnLoadCallback(drawChart)
 		var rfduinoble = evothings.rfduinoble;
 
 		// Application object.
@@ -127,6 +127,8 @@ RFduino from a PC or Mac.
 		var R = 0;
 		var G = 0;
 		var B = 0;
+		var sampleCount = 0;
+		var dataArray = [];
 		// Connected device.
 		app.device = null;
 
@@ -199,7 +201,27 @@ RFduino from a PC or Mac.
 			// 	myInt = myInt & data[]
 			// }
 		};
+		app.getHistory = function() {
+			sampleCount = 0;
+			dataArray = [['Time', 'Steps', 'HR Median', 'HR Dev']];
+			app.device && app.device.writeDataArray(new Uint8Array([3]));
+
+		}
+		app.drawChart = function(data) {
+			var data = google.visualization.arrayToDataTable(data);
+
+			var options = {
+				title: 'Your Awesome Data',
+				curveType: 'function',
+				legend: { position: 'bottom' }
+			};
+
+			var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+
+			chart.draw(data, options);
+		}
 		app.rfdHandler = function(rfdData) {
+			sampleCount++;
 			var myDataArray = new Uint8Array(rfdData);
 			// Probably should do some maximum length tests for production someday.
 			var myString = "Received Length: ";
@@ -214,11 +236,13 @@ RFduino from a PC or Mac.
 			//myString = "EPOCH: ";
 			var epoch = evothings.util.bigEndianToUint32(myDataArray, 0)
 			var steps = evothings.util.bigEndianToUint16(myDataArray, 4)
-			var hr = evothings.util.littleEndianToUint8(myDataArray,6);
-			var hrDev = evothings.util.littleEndianToUint8(myDataArray,7);
-			var bat = evothings.util.littleEndianToUint8(myDataArray,8);
-			console.log(epoch);
-			myString = "Time: "+ app.timeConverter(epoch)+" Steps: "+steps + " HR Median: "+hr+" HR Dev: "+hrDev;
+			var hr = evothings.util.littleEndianToUint8(myDataArray, 6);
+			var hrDev = evothings.util.littleEndianToUint8(myDataArray, 7);
+			var bat = evothings.util.littleEndianToUint8(myDataArray, 8);
+			dataArray.push([epoch,steps,hr,hrDev])
+			app.drawChart(dataArray);
+			console.log("sample time: " + epoch + " Steps: " + steps + " hr: " + hr + " hr dev: " + hrDev + " batt: " + (bat * 0.0165).toFixed(3) + " sample count: " + sampleCount);
+			myString = "Time: " + app.timeConverter(epoch) + " Steps: " + steps + " HR Median: " + hr + " HR Dev: " + hrDev;
 			// Create a new JavaScript Date object based on the timestamp
 			// multiplied by 1000 so that the argument is in milliseconds, not seconds.
 
@@ -227,7 +251,7 @@ RFduino from a PC or Mac.
 			// }
 
 			//myString = myString + myDataArray[0];
-			app.logReading("Time: "+ app.timeConverter(epoch),"Steps: "+steps,"HR Median: "+hr,"HR Dev: "+hrDev,"Batt: "+(bat*0.0165).toFixed(3));
+			app.logReading("Time: " + app.timeConverter(epoch), "Steps: " + steps, "HR Median: " + hr, "HR Dev: " + hrDev, "Batt: " + (bat * 0.0165).toFixed(3));
 		}
 		app.eventDeviceClicked = function(event) {
 			app.showMessage("Connecting...");
@@ -236,6 +260,9 @@ RFduino from a PC or Mac.
 				function(result) {
 					app.showMessage("Connected to " + event.data.device.advertisementData.kCBAdvDataLocalName);
 					app.device = event.data.device;
+					setTimeout(function() {
+						app.sendTimeSync();
+					}, 500);
 					app.device && app.device.readData(function(data) {
 						//console.log(data.length);
 						app.rfdHandler(data);
@@ -279,12 +306,13 @@ RFduino from a PC or Mac.
 		app.logMessage2 = function(log) {
 			document.getElementById("log2").innerHTML = log;
 		};
-		app.logReading = function(time,steps,hr,hrdev,batt) {
+		app.logReading = function(time, steps, hr, hrdev, batt) {
 			document.getElementById("time").innerHTML = time;
 			document.getElementById("steps").innerHTML = steps;
 			document.getElementById("hr").innerHTML = hr;
 			document.getElementById("hrdev").innerHTML = hrdev;
 			document.getElementById("batt").innerHTML = batt;
+			document.getElementById("sampleCount").innerHTML = sampleCount;
 		};
 
 		// Called when BLE and other native functions are available.
