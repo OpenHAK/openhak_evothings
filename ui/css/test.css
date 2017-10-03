@@ -68,8 +68,8 @@ section::after {
 /* The header's height is determined by the contained text's font size. */
 header {
 	box-sizing: border-box; /* Width & height includes padding & border. */
-
-	position: fixed;
+/*
+	position: fixed;*/
 	top: 0;
 	left: 0;
 	right: 0;
@@ -84,8 +84,8 @@ header {
 
 	font-size: 180%;
 	line-height: 100%;
-	text-align: center;
-	vertical-align: middle;
+	/*text-align: center;*/
+	/*vertical-align: middle;*/
 
 	background: #f3f3f3;
 
@@ -130,7 +130,7 @@ header button.back img {
 	height: 0.5em;
 }
 header img.logotype {
-	position: absolute;
+	/*position: absolute;*/
 	top: 50%;
 	left: 0;
 	right: 0;
@@ -493,7 +493,7 @@ h1 {
 
 	font-family: 'Proxima Nova Black';
 	font-size: 100%;
-	line-height: 1.5;
+	line-height: 1;
 
 	vertical-align: middle;
 }

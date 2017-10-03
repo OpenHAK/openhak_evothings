@@ -84,8 +84,8 @@ header {
 
 	font-size: 180%;
 	line-height: 100%;
-	text-align: center;
-	vertical-align: middle;
+	/*text-align: center;*/
+	/*vertical-align: middle;*/
 
 	background: #f3f3f3;
 
@@ -136,8 +136,9 @@ header img.logotype {
 	right: 0;
 
 	height: 60%;
-
-	margin: 0 auto;
+	text-align: right;
+	/*margin: 0 auto;*/
+	padding-left: 20px;
 
 	-webkit-transform: translateY(-50%);
 	-ms-transform: translateY(-50%);
@@ -221,13 +222,13 @@ header menu a {
 header h1 {
 	width: 100%;
 	margin: 0;
-	padding: 0;
+	padding-left: 50px;
 
 	font-size: inherit;
 	line-height: inherit;
 	font-weight: normal;
-	text-align: center;
-	vertical-align: middle;
+	/*text-align: center;
+	vertical-align: middle;*/
 	color: #000;
 
 	overflow: hidden;
@@ -493,6 +494,10 @@ h2,h3,h4,h5,h6 {
 
 a {
 	color: #52afb8; /* Default color: "Blue Hue" (dark variant) */
+}
+a.device {
+	color: #52afb8; /* Default color: "Blue Hue" (dark variant) */
+	font-size: 1.5em;
 }
 
 p {

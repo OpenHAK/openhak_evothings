@@ -52,22 +52,15 @@
 
 	<header>
 		<h1>OpenHAK</h1>
-		<!-- <button class="back" onclick="history.back()">
-			<img src="ui/images/arrow-left.svg" />
-		</button>
-
-		<img class="logotype" src="ui/images/logo.svg" alt="Evothings" /> -->
-
-		<!--<button class="menu" onclick=""><img src="ui/images/menu.svg" /></button>-->
+		<img class="logotype" src="ui/images/ohak_icon.svg" alt="OpenHAK" />
 	</header>
 
 
 
 	<p id="info" class="lead">Initializing...</p>
-	<h2>Available OpenHAKs</h2>
+	<h2>Available OpenHAKs (Click to connect)</h2>
 	<!-- TODO: buttons to start/stop scan. -->
 	<ul data-role="listview" id="deviceList">
-		<li>Address RSSI Name</li>
 	</ul>
 	<button type="button" class="blue" onclick="app.scanStart()">
 		Scan
@@ -75,16 +68,20 @@
 	<button type="button" class="charcoal" onclick="app.scanStop()">
 		Stop Scan
 	</button>
-	<button type="button" class="yellow" onclick="app.sendTimeSync()">
+	<!-- <button type="button" class="yellow" onclick="app.sendTimeSync()">
 		Sync Time
-	</button>
+	</button> -->
 	<button type="button" class="red" onclick="app.getHistory()">
 		Get History
 	</button>
 	<button type="button" class="charcoal" onclick="app.disconnect()">
 		Disconnect
 	</button>
-	<div id="chart_div" style="width: 360px; height: 120px;"></div>
+	<div style="width:100%; background-color: lightblue;">
+	<div id="chart_div" style="width: 100%; height: 320px;" ></div>
+	</div>
+	<!-- style="width: 100%; height: 220px;" -->
+	<u> Debug Info: </u>
 	<p id="log" class="lead">Pending Logs...</p>
 	<p id="log2" class="lead">Pending Logs...</p>
 	<p id="time" class="lead">Time: Pending Data...</p>
@@ -111,14 +108,11 @@
 
 	<!-- JavaScript code for the app -->
 	<script>
-		/**
-		 * The following JavaScript code allows us to get the color value
-		 * as the selected point on rendered image on the UI.
-		 */
-		// Short name for RFduino BLE library.
 		//google.load("visualization", "1", {packages:["line"]})
-		google.charts.load('current', {'packages':['corechart']});
-		//google.setOnLoadCallback(drawChart)
+		google.charts.load('current', {
+			'packages': ['corechart']
+		});
+
 		var rfduinoble = evothings.rfduinoble;
 
 		// Application object.
@@ -131,7 +125,30 @@
 		var dataArray = [];
 		// Connected device.
 		app.device = null;
+		app.checkFile = function(){
+			window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function(fs) {
 
+				console.log('file system open: ' + fs.name);
+				fs.root.getFile("ohak_data.json", {
+					create: true,
+					exclusive: false
+				}, function(fileEntry) {
+
+					console.log("fileEntry is file?" + fileEntry.isFile.toString());
+					// fileEntry.name == 'someFile.txt'
+					// fileEntry.fullPath == '/someFile.txt'
+					writeFile(fileEntry, null);
+
+				}, app.onErrorCreateFile);
+
+			}, app.onErrorLoadFs);
+		}
+		app.onErrorCreateFile = function(){
+			console.log("Error creating file")
+		}
+		app.onErrorLoadFs = function(){
+			console.log("Error loading FS");
+		}
 		app.scanStop = function() {
 			console.log("stop scan");
 			app.showMessage("Not Scanning");
@@ -153,7 +170,7 @@
 					console.log('scan result: ' + JSON.stringify(r));
 					var p = document.getElementById('deviceList');
 					var li = document.createElement('li');
-					var $a = $("<a href=\"#connected\">" + res + "</a>");
+					var $a = $("<a class='device' href=\"#connected\">" + res + "</a>");
 					$(li).append($a);
 					$a.bind("click", {
 							address: r.address,
@@ -203,9 +220,15 @@
 		};
 		app.getHistory = function() {
 			sampleCount = 0;
-			dataArray = [['Time', 'Steps', 'HR Median', 'HR Dev']];
+			dataArray = [
+				['Time', 'Steps', 'HR Median', 'HR Dev']
+			];
 			app.device && app.device.writeDataArray(new Uint8Array([3]));
 
+		}
+		app.drawChartBlank = function(data){
+			var d = new Date(0);
+			app.drawChart([d, 0, 0, 0]);
 		}
 		app.drawChart = function(data) {
 			var data = google.visualization.arrayToDataTable(data);
@@ -213,7 +236,10 @@
 			var options = {
 				title: 'Your Awesome Data',
 				curveType: 'function',
-				legend: { position: 'bottom' }
+				chartArea: {'width': '85%'},
+				legend: {
+					position: 'bottom'
+				}
 			};
 
 			var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
@@ -239,7 +265,10 @@
 			var hr = evothings.util.littleEndianToUint8(myDataArray, 6);
 			var hrDev = evothings.util.littleEndianToUint8(myDataArray, 7);
 			var bat = evothings.util.littleEndianToUint8(myDataArray, 8);
-			dataArray.push([epoch,steps,hr,hrDev])
+			//new Date(Milliseconds)
+			var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
+			d.setUTCSeconds(epoch);
+			dataArray.push([d, steps, hr, hrDev])
 			app.drawChart(dataArray);
 			console.log("sample time: " + epoch + " Steps: " + steps + " hr: " + hr + " hr dev: " + hrDev + " batt: " + (bat * 0.0165).toFixed(3) + " sample count: " + sampleCount);
 			myString = "Time: " + app.timeConverter(epoch) + " Steps: " + steps + " HR Median: " + hr + " HR Dev: " + hrDev;
@@ -263,6 +292,9 @@
 					setTimeout(function() {
 						app.sendTimeSync();
 					}, 500);
+					setTimeout(function() {
+						app.getHistory();
+					}, 750);
 					app.device && app.device.readData(function(data) {
 						//console.log(data.length);
 						app.rfdHandler(data);
@@ -284,19 +316,7 @@
 					app.showMessage("Connect error: " + errorCode);
 				});
 		};
-		// Turn off LED.
-		app.ledOff = function() {
-			//app.device && app.device.writeDataArray(new Uint8Array([0]));
-			app.device.writeDataArray(new Uint8Array([0, 0, 0, 0x00, 0x40]));
-		};
-		app.playNext = function() {
-			app.device && app.device.writeDataArray(new Uint8Array([0, 0, 0, 0, 0, 1]));
-			console.log("Playing Next");
-		}
-		app.playPrevious = function() {
-			app.device && app.device.writeDataArray(new Uint8Array([0, 0, 0, 0, 0, 2]));
-			console.log("Playing Previous");
-		}
+
 		app.showMessage = function(info) {
 			document.getElementById("info").innerHTML = info;
 		};
@@ -312,7 +332,7 @@
 			document.getElementById("hr").innerHTML = hr;
 			document.getElementById("hrdev").innerHTML = hrdev;
 			document.getElementById("batt").innerHTML = batt;
-			document.getElementById("sampleCount").innerHTML = sampleCount;
+			document.getElementById("sampleCount").innerHTML = "Sample count: "+sampleCount;
 		};
 
 		// Called when BLE and other native functions are available.
@@ -373,6 +393,7 @@
 			'deviceready',
 			function() {
 				evothings.scriptsLoaded(app.onDeviceReady)
+				app.checkFile();
 			},
 			false);
 	</script>
