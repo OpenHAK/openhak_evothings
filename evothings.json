@@ -56,7 +56,6 @@
     {
       "name": "cordova-plugin-whitelist"
     },
-
     {
       "name": "de.appplant.cordova.plugin.local-notification",
       "version": "0.8.4"

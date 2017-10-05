@@ -71,6 +71,7 @@ evothings.rfduinoble = {};
     evothings.rfduinoble.scan = function(deviceName, success, fail) {
         evothings.easyble.startScan(
             function(device) {
+                //console.log('found device: ',device);
                 if (device.name !== null && typeof device.name !== "undefined") {
                     if (device.name.includes(deviceName) || device.name.includes("Simblee")) {
                         //console.log('found device: ',device);
