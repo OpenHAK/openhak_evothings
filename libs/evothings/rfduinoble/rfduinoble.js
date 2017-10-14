@@ -72,8 +72,8 @@ evothings.rfduinoble = {};
         evothings.easyble.startScan(
             function(device) {
                 //console.log('found device: ',device);
-                if (device.name !== null && typeof device.name !== "undefined") {
-                    if (device.name.includes(deviceName) || device.name.includes("Simblee")) {
+                if (device.advertisementData.kCBAdvDataLocalName !== null && typeof device.advertisementData.kCBAdvDataLocalName !== "undefined") {
+                    if (device.advertisementData.kCBAdvDataLocalName.includes(deviceName) || device.advertisementData.kCBAdvDataLocalName.includes("Simblee")) {
                         //console.log('found device: ',device);
                         success(device);
                         // evothings.easyble.stopScan();
