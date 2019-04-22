@@ -1,16 +1,35 @@
 
 var sampleObj = genSampleData();
 var lastDay = -1;
+//console.log(JSON.stringify(sampleObj));
+var count = 0;
 for (var key in sampleObj) {
     if (!sampleObj.hasOwnProperty(key)) continue;
     var obj = sampleObj[key];
+    //console.log(JSON.stringify(obj));
+    count++;
     var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
     d.setUTCSeconds(obj.epoch);
-    if(d.getDay()>lastDay){
+    //console.log(d.getDay());
+    if(d.getDay()!==lastDay){
         lastDay = d.getDay();
-        console.log("New Day : "+d.toString());
+        console.log("New Day : "+d.toString()+" "+ getWeekNumber(d));
     }
+    //console.log(count);
     //dataArray.push([d, obj.hr, obj.hrDev])
+}
+function getWeekNumber(d) {
+    // Copy date so don't modify original
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    // Set to nearest Thursday: current date + 4 - current day number
+    // Make Sunday's day number 7
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    // Get first day of year
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    // Calculate full weeks to nearest Thursday
+    var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+    // Return array of year and week number
+    return [d.getUTCFullYear(), weekNo];
 }
 // var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
 // d.setUTCSeconds(epoch);
@@ -21,7 +40,7 @@ function genSampleData() {
     var historyObject = {};
     var timeIncriment = 300;
     var samplesPerDay = 288; // at 300 seconds interval
-    var maxSamples = 512;
+    var maxSamples = 4012;
     var maxStepsPerInterval = 60;
     var currentSteps = 0;
     var maxHR = 180;
